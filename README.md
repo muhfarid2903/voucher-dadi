@@ -98,9 +98,11 @@ Bagikan URL ke pihak penitipan supaya mereka juga pasang.
 
 ## Cara Pakai
 
-- **Tambah pengambilan**: pilih tanggal, isi jumlah voucher, tekan tombol catat
-- **Tandai sudah dibayar**: centang checkbox di kiri baris (otomatis dicoret)
-- **Hapus**: tekan tombol × di kanan baris
+- **Tambah pengambilan**: pilih tanggal, isi jumlah voucher, tekan tombol catat.
+- **Catat pembayaran**: tekan tombol biru **+ Bayar** pada baris pengambilan. Default = sisa yang belum dibayar — kosongkan / ganti kalau bayar sebagian (cicil). Bisa diulang sampai lunas.
+- **Lihat riwayat pembayaran**: tekan tombol **Riw▾** di baris pengambilan untuk lihat tiap setoran. Tombol **×** di kanan tiap setoran untuk menghapus pembayaran tertentu (misalnya salah catat).
+- **Status**: badge hijau **Lunas** kalau total pembayaran ≥ jumlah pengambilan; badge kuning **Cicil** kalau sebagian; tanpa badge kalau belum ada pembayaran.
+- **Hapus pengambilan**: tombol × di kanan baris pengambilan — ikut menghapus seluruh riwayat pembayarannya.
 - **Sinkron**: otomatis. Saat pihak penitipan menambah/mengubah catatan dari HP-nya, layar Anda update sendiri (asal browser tetap terbuka). Lampu hijau di pojok kanan atas = tersambung.
 
 ## Mengubah

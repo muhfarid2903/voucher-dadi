@@ -130,29 +130,19 @@ button.primary:disabled { opacity: 0.5; cursor: wait; }
 }
 .item:last-child { border-bottom: none; }
 
-.item input[type="checkbox"] {
-  width: 22px;
-  height: 22px;
-  margin-right: 12px;
-  cursor: pointer;
-  flex-shrink: 0;
-  accent-color: #10b981;
-}
-
 .item-info {
   flex: 1;
   min-width: 0;
 }
 .item-tanggal { font-weight: 500; font-size: 15px; }
 .item-detail { font-size: 13px; color: #6b7280; margin-top: 2px; }
+.item-status { font-size: 12px; color: #6b7280; margin-top: 2px; }
 
-.item.dibayar .item-info { opacity: 0.5; }
-.item.dibayar .item-tanggal { text-decoration: line-through; }
+.item.lunas .item-tanggal { text-decoration: line-through; }
+.item.lunas .item-info { opacity: 0.7; }
 
 .badge {
   display: inline-block;
-  background: #dcfce7;
-  color: #166534;
   font-size: 10px;
   padding: 2px 6px;
   border-radius: 4px;
@@ -161,6 +151,61 @@ button.primary:disabled { opacity: 0.5; cursor: wait; }
   font-weight: 600;
   vertical-align: middle;
 }
+.badge-lunas { background: #dcfce7; color: #166534; }
+.badge-cicil { background: #fef3c7; color: #92400e; }
+
+.item-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.btn-bayar {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.btn-bayar:active { background: #1d4ed8; }
+.btn-riwayat {
+  background: #f3f4f6;
+  color: #374151;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.btn-riwayat:active { background: #e5e7eb; }
+
+.riwayat {
+  background: #f9fafb;
+  padding: 6px 10px;
+  border-radius: 6px;
+  margin: 4px 0 12px 0;
+  font-size: 13px;
+}
+.riwayat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+.riwayat-item:last-child { border-bottom: none; }
+.riwayat-hapus {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  font-size: 18px;
+  line-height: 1;
+  padding: 2px 6px;
+  cursor: pointer;
+}
+.riwayat-hapus:active { color: #dc2626; }
 
 .item-hapus {
   background: none;
