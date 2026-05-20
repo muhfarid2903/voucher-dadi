@@ -16,7 +16,19 @@
   <div id="app" class="hidden">
     <div class="header">
       <h1>Catatan Voucher</h1>
-      <span id="status-koneksi" class="status-koneksi" title="Status sinkronisasi"></span>
+      <div class="header-kanan">
+        <button id="btn-operator" class="btn-operator" type="button" title="Atur nama operator">👤 Operator</button>
+        <span id="status-koneksi" class="status-koneksi" title="Status sinkronisasi"></span>
+      </div>
+    </div>
+
+    <div id="banner-alur" class="banner-alur">
+      <div class="banner-alur-utama">
+        <span class="pihak suplier" id="banner-suplier">warkopsaja</span>
+        <span class="panah">→</span>
+        <span class="pihak dealer" id="banner-dealer">dadi</span>
+      </div>
+      <div class="banner-alur-sub" id="banner-sub">setor Rp 1.500/voucher</div>
     </div>
 
     <div class="card">
@@ -52,6 +64,14 @@
     <div class="card">
       <h2>Riwayat</h2>
       <div id="daftar"><div class="loading">Memuat...</div></div>
+    </div>
+
+    <div class="card">
+      <button class="histori-toggle" id="btn-histori-toggle" type="button">
+        <span>Histori Perubahan</span>
+        <span class="histori-chevron" id="histori-chevron">▾</span>
+      </button>
+      <div id="histori" class="histori-body hidden"><div class="loading">Memuat...</div></div>
     </div>
 
     <div class="footer">Setoran Rp 1.500 per voucher · Sinkron otomatis</div>

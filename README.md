@@ -98,6 +98,9 @@ Bagikan URL ke pihak penitipan supaya mereka juga pasang.
 
 ## Cara Pakai
 
+- **Banner alur**: di atas halaman ada banner `warkopsaja → dadi · setor Rp 1.500/voucher` yang menjelaskan arah voucher: suplier (`warkopsaja`) men-drop voucher ke dealer (`dadi`), lalu dealer setor balik Rp 1.500 per voucher. Tiap baris riwayat juga menampilkan label kecil `warkopsaja → dadi`.
+- **Nama operator**: tombol **👤** di pojok kanan atas. Tekan → isi/ubah nama, lalu nama itu tercatat di setiap baris Histori Perubahan. Boleh dikosongkan (tidak dipaksa) — kalau kosong, histori tercatat sebagai "(tanpa nama)" dan tombol kembali menampilkan "Operator". Nama disimpan lokal di HP/laptop ini saja (localStorage), tidak ikut tersinkron.
+- **Histori Perubahan**: card di bawah Riwayat (default tertutup, tekan judulnya untuk buka). Mencatat otomatis tiap aksi tambah pengambilan / catat pembayaran / hapus pembayaran / hapus pengambilan, lengkap dengan waktu (jam.menit) dan nama operator. Maks 100 baris terbaru, tersinkron realtime antar perangkat.
 - **Tambah pengambilan**: pilih tanggal, isi jumlah voucher, tekan tombol catat.
 - **Catat pembayaran**: tekan tombol biru **+ Bayar** pada baris pengambilan. Default = sisa yang belum dibayar — kosongkan / ganti kalau bayar sebagian (cicil). Bisa diulang sampai lunas.
 - **Lihat riwayat pembayaran**: tekan tombol **Riw▾** di baris pengambilan untuk lihat tiap setoran. Tombol **×** di kanan tiap setoran untuk menghapus pembayaran tertentu (misalnya salah catat).
@@ -108,8 +111,11 @@ Bagikan URL ke pihak penitipan supaya mereka juga pasang.
 ## Mengubah
 
 - **Harga setoran** (default Rp 1.500): edit `HARGA_SETOR` di `app.js`.
+- **Nama pihak alur** (suplier/dealer): edit `SUPLIER` dan `DEALER` di blok konfigurasi `app.js`. Banner dan label di tiap baris ikut berubah otomatis.
 - **Tampilan/warna**: edit `style.css`.
 - **Setelah perubahan**: `git add . && git commit -m "update" && git push`. GitHub Pages otomatis deploy dalam 1-2 menit.
+
+> **⚠️ Penting untuk instalasi lama:** fitur Histori Perubahan butuh tabel baru `histori_dadi`. Kalau Supabase Anda sudah dibuat sebelum fitur ini ada, **jalankan ulang seluruh isi `supabase-setup.sql`** di SQL Editor (skrip ini idempotent — aman dijalankan berkali-kali, tidak menghapus data lama). Kalau langkah ini dilewati, panel Histori akan menampilkan error "Gagal memuat histori".
 
 ## Struktur File
 

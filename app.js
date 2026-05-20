@@ -5,6 +5,10 @@ const SUPABASE_URL = 'https://bsdaplbfrctmmutaojik.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJzZGFwbGJmcmN0bW11dGFvamlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxMDg2NTAsImV4cCI6MjA5MjY4NDY1MH0.q_JfVHRg2JxqqAseBvAVWWYYzCwfpUhPCocW64y31G8';
 
 const HARGA_SETOR = 1500;
+
+// Alur: suplier men-drop voucher ke dealer, dealer setor balik Rp 1.500/voucher.
+const SUPLIER = 'warkopsaja';
+const DEALER = 'dadi';
 // === AKHIR KONFIGURASI ===
 
 
@@ -27,15 +31,47 @@ function jalankan() {
   const elTanggal = document.getElementById('input-tanggal');
   const elJumlah = document.getElementById('input-jumlah');
   const elBtn = document.getElementById('btn-tambah');
+  const elOperator = document.getElementById('btn-operator');
+  const elHistori = document.getElementById('histori');
+  const elHistoriToggle = document.getElementById('btn-histori-toggle');
+  const elHistoriChevron = document.getElementById('histori-chevron');
 
+  isiBannerAlur();
+  updateTombolOperator();
   setTanggalHariIni();
   muat();
+  muatHistori();
   langgankanRealtime();
 
   elBtn.addEventListener('click', tambah);
   elJumlah.addEventListener('keydown', e => {
     if (e.key === 'Enter') tambah();
   });
+  elOperator.addEventListener('click', ubahOperator);
+  elHistoriToggle.addEventListener('click', toggleHistori);
+
+  function isiBannerAlur() {
+    document.getElementById('banner-suplier').textContent = SUPLIER;
+    document.getElementById('banner-dealer').textContent = DEALER;
+    document.getElementById('banner-sub').textContent = `setor ${rupiah(HARGA_SETOR)}/voucher`;
+  }
+
+  function namaOperator() {
+    return (localStorage.getItem('operator_dadi') || '').trim();
+  }
+
+  function updateTombolOperator() {
+    elOperator.textContent = '👤 ' + (namaOperator() || 'Operator');
+  }
+
+  function ubahOperator() {
+    const input = prompt('Nama operator (dipakai di histori). Kosongkan untuk hapus:', namaOperator());
+    if (input === null) return;
+    const bersih = input.trim();
+    if (bersih) localStorage.setItem('operator_dadi', bersih);
+    else localStorage.removeItem('operator_dadi');
+    updateTombolOperator();
+  }
 
   function setTanggalHariIni() {
     const t = new Date();
@@ -117,6 +153,68 @@ function jalankan() {
         () => muat()
       )
       .subscribe(setStatus);
+
+    // Histori dipisah dari setStatus: kalau tabel histori_dadi belum dibuat
+    // (instalasi lama), kegagalannya tak boleh mematikan indikator koneksi.
+    supabase
+      .channel('histori-dadi-changes')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'histori_dadi' },
+        () => muatHistori()
+      )
+      .subscribe();
+  }
+
+  // Catat satu baris histori. Tidak memblokir alur utama: kalau gagal
+  // (mis. tabel belum dibuat), cukup warning di console.
+  async function catatHistori(aksi, pengambilanId, keterangan) {
+    const { error } = await supabase.from('histori_dadi').insert({
+      aksi,
+      oleh: namaOperator() || null,
+      pengambilan_id: pengambilanId || null,
+      keterangan
+    });
+    if (error) console.warn('Gagal mencatat histori:', error.message);
+  }
+
+  async function muatHistori() {
+    const { data, error } = await supabase
+      .from('histori_dadi')
+      .select('*')
+      .order('waktu', { ascending: false })
+      .limit(100);
+
+    if (error) {
+      elHistori.innerHTML = `<div class="kosong">Gagal memuat histori: ${escapeHtml(error.message)}</div>`;
+      return;
+    }
+    if (!data || !data.length) {
+      elHistori.innerHTML = '<div class="kosong">Belum ada perubahan</div>';
+      return;
+    }
+
+    elHistori.innerHTML = '';
+    for (const h of data) {
+      const row = document.createElement('div');
+      row.className = 'histori-item';
+
+      const ket = document.createElement('div');
+      ket.className = 'histori-ket';
+      ket.textContent = h.keterangan || '';
+
+      const meta = document.createElement('div');
+      meta.className = 'histori-meta';
+      meta.textContent = `${waktuIndonesia(h.waktu)} · ${h.oleh || '(tanpa nama)'}`;
+
+      row.appendChild(ket);
+      row.appendChild(meta);
+      elHistori.appendChild(row);
+    }
+  }
+
+  function toggleHistori() {
+    const tertutup = elHistori.classList.toggle('hidden');
+    elHistoriChevron.textContent = tertutup ? '▾' : '▴';
   }
 
   async function tambah() {
@@ -129,9 +227,11 @@ function jalankan() {
     elBtn.disabled = true;
     elBtn.textContent = 'Menyimpan...';
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('pengambilan_dadi')
-      .insert({ tanggal, jumlah });
+      .insert({ tanggal, jumlah })
+      .select('id')
+      .single();
 
     elBtn.disabled = false;
     elBtn.textContent = '+ Catat Pengambilan';
@@ -140,11 +240,13 @@ function jalankan() {
       alert('Gagal menyimpan: ' + error.message);
       return;
     }
+    catatHistori('tambah', data && data.id,
+      `${SUPLIER} drop ${jumlah} voucher (${tanggalIndonesia(tanggal)}) ke ${DEALER}`);
     elJumlah.value = '';
     elJumlah.focus();
   }
 
-  async function tambahBayar(pengambilanId, sisa) {
+  async function tambahBayar(item, sisa) {
     const defaultVal = sisa > 0 ? String(sisa) : '';
     const input = prompt('Jumlah voucher yang dibayar:', defaultVal);
     if (input === null) return;
@@ -156,22 +258,38 @@ function jalankan() {
     if (sisa > 0 && jumlah > sisa) {
       if (!confirm(`Jumlah (${jumlah}) melebihi sisa (${sisa}). Tetap simpan?`)) return;
     }
+    const tanggal = tanggalHariIni();
     const { error } = await supabase
       .from('pembayaran_dadi')
-      .insert({ pengambilan_id: pengambilanId, tanggal: tanggalHariIni(), jumlah });
-    if (error) alert('Gagal menyimpan pembayaran: ' + error.message);
+      .insert({ pengambilan_id: item.id, tanggal, jumlah });
+    if (error) {
+      alert('Gagal menyimpan pembayaran: ' + error.message);
+      return;
+    }
+    catatHistori('ubah', item.id,
+      `${DEALER} setor ${jumlah} voucher ke ${SUPLIER} (pengambilan ${tanggalIndonesia(item.tanggal)})`);
   }
 
-  async function hapusBayar(id) {
+  async function hapusBayar(r, item) {
     if (!confirm('Hapus pembayaran ini?')) return;
-    const { error } = await supabase.from('pembayaran_dadi').delete().eq('id', id);
-    if (error) alert('Gagal menghapus pembayaran: ' + error.message);
+    const { error } = await supabase.from('pembayaran_dadi').delete().eq('id', r.id);
+    if (error) {
+      alert('Gagal menghapus pembayaran: ' + error.message);
+      return;
+    }
+    catatHistori('hapus', item.id,
+      `Hapus setoran ${r.jumlah} voucher (pengambilan ${tanggalIndonesia(item.tanggal)})`);
   }
 
-  async function hapus(id) {
+  async function hapus(item) {
     if (!confirm('Hapus pengambilan ini beserta riwayat pembayarannya? Tidak bisa dibatalkan.')) return;
-    const { error } = await supabase.from('pengambilan_dadi').delete().eq('id', id);
-    if (error) alert('Gagal menghapus: ' + error.message);
+    const { error } = await supabase.from('pengambilan_dadi').delete().eq('id', item.id);
+    if (error) {
+      alert('Gagal menghapus: ' + error.message);
+      return;
+    }
+    catatHistori('hapus', item.id,
+      `Hapus pengambilan ${item.jumlah} voucher (${tanggalIndonesia(item.tanggal)}) — ${SUPLIER} → ${DEALER}`);
   }
 
   function toggleRiwayat(id) {
@@ -240,13 +358,17 @@ function jalankan() {
       status.textContent = `${item.dibayar} dari ${item.jumlah} dibayar · sisa ${sisa} (${rupiah(sisa * HARGA_SETOR)})`;
     }
 
+    const alur = document.createElement('div');
+    alur.className = 'item-alur';
+    alur.textContent = `${SUPLIER} → ${DEALER}`;
+
     const actions = document.createElement('div');
     actions.className = 'item-actions';
 
     const btnBayar = document.createElement('button');
     btnBayar.className = 'btn-bayar';
     btnBayar.textContent = lunas ? 'Bayar lagi' : `+ Bayar ${sisa}`;
-    btnBayar.addEventListener('click', () => tambahBayar(item.id, sisa));
+    btnBayar.addEventListener('click', () => tambahBayar(item, sisa));
     actions.appendChild(btnBayar);
 
     if (item.riwayat.length > 0) {
@@ -261,13 +383,14 @@ function jalankan() {
     info.appendChild(tgl);
     info.appendChild(detail);
     info.appendChild(status);
+    info.appendChild(alur);
     info.appendChild(actions);
 
     const btnHapus = document.createElement('button');
     btnHapus.className = 'item-hapus';
     btnHapus.innerHTML = '&times;';
     btnHapus.title = 'Hapus pengambilan';
-    btnHapus.addEventListener('click', () => hapus(item.id));
+    btnHapus.addEventListener('click', () => hapus(item));
 
     div.appendChild(info);
     div.appendChild(btnHapus);
@@ -285,7 +408,7 @@ function jalankan() {
         x.className = 'riwayat-hapus';
         x.innerHTML = '&times;';
         x.title = 'Hapus pembayaran';
-        x.addEventListener('click', () => hapusBayar(r.id));
+        x.addEventListener('click', () => hapusBayar(r, item));
         row.appendChild(teks);
         row.appendChild(x);
         list.appendChild(row);
@@ -319,6 +442,16 @@ function tanggalIndonesia(yyyymmdd) {
   const [y, m, d] = String(yyyymmdd).split('-');
   const bulan = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
   return `${parseInt(d)} ${bulan[parseInt(m) - 1]} ${y}`;
+}
+
+function waktuIndonesia(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  if (isNaN(d)) return '';
+  const bulan = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  const jam = String(d.getHours()).padStart(2, '0');
+  const menit = String(d.getMinutes()).padStart(2, '0');
+  return `${d.getDate()} ${bulan[d.getMonth()]} ${d.getFullYear()}, ${jam}.${menit}`;
 }
 
 function escapeHtml(s) {

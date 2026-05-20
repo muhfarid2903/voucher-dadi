@@ -90,3 +90,40 @@ begin
     alter table pengambilan_dadi drop column sudah_dibayar;
   end if;
 end $$;
+
+-- =========================================================
+-- 5. Tabel histori (audit log "Histori Perubahan")
+--    pengambilan_id sengaja TANPA foreign key, supaya log tetap
+--    tersimpan walau pengambilannya sudah dihapus.
+-- =========================================================
+create table if not exists histori_dadi (
+  id uuid primary key default gen_random_uuid(),
+  waktu timestamptz not null default now(),
+  aksi text not null check (aksi in ('tambah', 'ubah', 'hapus')),
+  oleh text,
+  pengambilan_id uuid,
+  keterangan text
+);
+
+create index if not exists histori_dadi_waktu_idx on histori_dadi (waktu desc);
+
+alter table histori_dadi enable row level security;
+
+drop policy if exists "akses_publik" on histori_dadi;
+create policy "akses_publik" on histori_dadi
+  for all
+  to anon
+  using (true)
+  with check (true);
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'histori_dadi'
+  ) then
+    execute 'alter publication supabase_realtime add table histori_dadi';
+  end if;
+end $$;
